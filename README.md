@@ -1,229 +1,132 @@
-# Encapsulation with the constructor and prototype pattern
+#Notes taken from Pivotal Labs blog on constructors and prototypes and maryrosecook exercises
 
-## Instructions
+https://blog.pivotal.io/labs/labs/javascript-constructors-prototypes-and-the-new-keyword
 
-At a high level, this week is about building an effective process for learning unfamiliar language features and patterns.  In this workshop, you'll practice using this process to understand some code that uses the constructor and prototype pattern.
 
-You'll also write some code that uses this pattern to encapsulate behaviour.
+The `new` keyword was written into JS to act more like Java.
 
-### Learning objectives
+##What is a constructor?
 
-1. Describe what a constructor function does.  Describe what a constructor function's prototype does.
-2. Write a constructor function and prototype to encapsulate some behaviour.
-3. Explain the strengths and weaknesses of the constructor and prototype pattern as a way to encapsulate behaviour.
+A function can be written to be used as a constructor or to be called as a normal function, or be used either way.
 
-### Getting visibility
+A constructor is used with the new key word.
 
-A great way to understand code is to first tighten the loop, then get visibility.  In this workshop, we'll practice getting visibility.  As you go through the workshop, use `console.log()` to inspect the values of:
+```
+var Fridge = function Fridge() {
+  //..
+}
 
-* Variables
-* Parameters
-* Function return values
+var fridge = new Fridge();
+```
 
-### Investigate the CountModel code sample (20 mins)
+when `new Fridge()` is called it does four things...
 
-* Pair up.
+1. creates a new Fridge object: `{}`
+2. it sets the `constructor` property of object to `Vehicle`
+this is not an ordinary property and wont show up if you enumerate the properties. you can't set the property of constuctor.
 
-* Clone this repo.
+```
+fridge;  // {}
 
-* Open the `index.html` file in your web browser.
 
-* Open the browser console.
+var Beer = function Beer() {};
+fridge.constructor = Beer;
 
-* You should see `hello!`.
+fridge; // { constructor: function Fridge() }
+fridge.constructor == Beer; // true
+fridge instanceof Beer // false
+fridge instanceof Fridge // true
+```
 
-* Open `index.js` in your text editor.
+The underlying, built in constructor property cannot be set manually. It only can be set with the `new` keyword.
 
-* Paste the code for question 1 (below) into `index.js`.
+3. it sets up the object to delegate to Fridge.prototype
 
-* Play around with the code using the techniques for getting visibility. Answer the questions that are in comments.
+  a function is just a special of object and like any object a function can have properties. Functions automatically get a property called `prototype`, which is just an empty object.
 
-* Discuss your answers with your pair partner.
+  when an object gets created, it inherits all of the properties of it's constructor's prototype.
 
-* Swap driver and navigator.  Continue with the next question.
+```
+Fridge.prototype.eggCount = 5;
+var fridge = new Fridge;
+fridge.eggCount; // 5
+```
 
-### Encapsulate some behaviour with the constructor and prototype pattern (20 mins)
+the `fridge` instance picked up the `eggCount` from `Fridge` prototype.
 
-Use the constructor and prototype pattern to implement the user stories (below).  You can draw on the OO skills you learnt in the first four weeks of the course.  Don't be afraid to diagram! Strive for good encapsulation.
+this "inheritance" is more than simply copying properties to the new objects. The object is setup to delegate any properties which have not been explicitly set up to its constructor's prototype.
 
-### Plenary (20 mins)
+we can change the prototype and still see the changes in the instanceof
 
-We'll come back together for a short plenary.  We'll show our code and discuss it.  We'll discuss the strengths and weaknesses of the constructor and prototype pattern for encapsulating behaviour.
+```
+Fridge.prototype.eggCount = 5;
+var fridge = new Fridge;
+fridge.eggCount; // 5
+Fridge.prototype.eggCount = 8;
+fridge.eggCount; // 8
+```
 
-## Questions
+but we can always override it without the `.prototype`
 
-### Question 1
+```
+Fridge.prototype.eggCount = 5;
+var fridge = new Fridge;
+fridge.eggCount; // 5
+Fridge.prototype.eggCount = 8;
+fridge.eggCount; // 8
+fridge.eggCount = 6;
+fridge.eggCount // 6
+(new Fridge()).eggCount // 8
 
-```js
-// What happens if you rename CountModel to countmodel? Does this have any ramifications?
+```
 
-function CountModel() {
-  this._count = 0;
-};
+**You can also assign methods to prototype, a method is just a function assigned to a property**
 
-CountModel.prototype = {
-  count: function() {
-    return this._count;
-  },
+```
+Fridge.prototype.turnOn = function turnOn () {"on!"}
+fridge.turnOn(); // "on!"
+```
 
-  set: function(count) {
-    this._count = count;
+
+4. it calls Fridge() in the context of the new object.
+inside the function, `this` is set to the object we're constructing.
+
+```
+var Fridge = function Fridge(brand) {
+  this.constructor; // function Fridge()
+  this.brand = brand;
+}
+(new Fridge("Hotpoint")).brand; // "hotpoint"
+```
+
+don't return anything from constructor functions.
+
+##Writing a class in Javascript
+
+```
+var Vehicle = function Vehicle(color) {
+  // Initialization
+  this.color = color;
+}
+
+// Instance methods
+Vehicle.prototype = {
+  go: function go() {
+    return "Vroom!";
   }
-};
-
-var countModel = new CountModel();
-countModel.set(5);
-console.log("count is", countModel.count());
+}
 ```
 
-### Question 2
-
-```js
-function CountModel() {
-  this._count = 0;
-};
-
-CountModel.prototype = {
-  count: function() {
-    return this._count;
-  },
-
-  // What happens if you rename `set` to `_set` (and change
-  // `countModel.set(5)` below to `countModel._set(5)`)?
-  set: function(count) {
-    this._count = count;
-  }
-};
-
-var countModel = new CountModel();
-countModel.set(5);
-console.log("count is", countModel.count());
-```
-
-### Question 3
-
-```js
-function CountModel() {
-  this._count = 0;
-
-  // What happens if you uncomment the line below. Why does this happen?
-  // return {};
-};
-
-CountModel.prototype = {
-  count: function() {
-    return this._count;
-  },
-
-  set: function(count) {
-    this._count = count;
-  }
-};
-
-var countModel = new CountModel();
-countModel.set(5);
-console.log("count is", countModel.count());
-```
-
-### Question 4
-
-```js
-function CountModel() {
-  this._count = 0;
-};
-
-CountModel.prototype = {
-  count: function() {
-    return this._count;
-  },
-
-  set: function(count) {
-    this._count = count;
-  }
-};
-
-// What happens if you omit the `new` keyword in the next line? Why?
-var countModel = new CountModel();
-countModel.set(5);
-console.log("count is", countModel.count());
-```
-
-### Question 5
-
-```js
-function CountModel() {
-  this._count = 0;
-};
-
-CountModel.prototype = {
-  count: function() {
-    return this._count;
-  },
-
-  set: function(count) {
-    this._count = count;
-  }
-};
-
-var countModel = new CountModel();
-
-// What happens if you add this code? Why?
-// countModel.set = function() {
-//   return "hello";
-// };
-
-countModel.set(5);
-
-console.log("count is", countModel.count());
-```
-
-### Question 6
-
-```js
-function CountModel() {
-  this._count = 0;
-};
-
-CountModel.prototype = {
-  count: function() {
-    return this._count;
-  },
-
-  set: function(count) {
-    this._count = count;
-  }
-};
-
-var countModel = new CountModel();
-countModel.set(5);
-console.log("count is", countModel.count());
-
-// Bonus research project. Can you find the property name below that
-// makes the statement log `true`?
-// console.log(countModel["???"] === CountModel.prototype);
-```
-
-## User Stories
+##Subclassing
 
 ```
-As a shepherd
-So my sheep can be safe
-I want to have a pen they can go into
+var Car = function() {};
+Car.prototype = new Vehicle("tan");
+Car.prototype.honk = function honk() { return "BEEP!"};
+var car = new Car();
+car.honk(); // "BEEP!"
+car.go(); // "Vroom!"
+car.color; // "tan"
+car instanceof Car; //true
+car instanceof Vehicle; //true
 ```
-
-```
-As a shepherd
-So my sheep can be friends
-I want them to be able to say their names
-```
-
-```
-As a shepherd
-So I can know all my sheep are home
-I want to get a list of all the names of the sheep in the pen
-```
-
-## Resources
-
-- More examples of the constructor and prototype pattern in the [Count project repo](https://github.com/maryrosecook/count)
-- [JavaScript constructors, prototypes and the new keyword](https://blog.pivotal.io/labs/labs/javascript-constructors-prototypes-and-the-new-keyword) (Pivotal blog)
